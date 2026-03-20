@@ -1,7 +1,33 @@
-﻿#Requires -Version 4
+#Requires -Version 4
 
-Function Check-Services { #Beginning of Function
-   [CmdletBinding()] 
+<#
+.SYNOPSIS
+    Monitors Windows services and sends an email alert when automatic services are stopped.
+
+.DESCRIPTION
+    Queries all Windows services configured for Automatic startup. If any are found
+    in a Stopped state, an email notification is sent to the specified recipient.
+    Intended to be run periodically via Windows Task Scheduler.
+
+.PARAMETER SMTPServer
+    Hostname or IP address of the SMTP server used to send alert emails.
+
+.PARAMETER FromEmailAddress
+    The sender email address for alert notifications.
+
+.PARAMETER ToEmailAddress
+    The recipient email address for alert notifications.
+
+.EXAMPLE
+    Check-Services -SMTPServer "smtp.example.com" -FromEmailAddress "alerts@example.com" -ToEmailAddress "admin@example.com"
+
+.NOTES
+    Author: David Malko
+    Requires: PowerShell 4.0 or later, Windows
+#>
+
+Function Check-Services {
+    [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
         [string]$SMTPServer,
@@ -11,33 +37,41 @@ Function Check-Services { #Beginning of Function
 
         [Parameter(Mandatory)]
         [string]$ToEmailAddress
-          )
-            try {  # looking for stopped services
-                      $stoppedServices = Get-Service | Where-Object {
-                      ($_.Status -eq "Stopped") -and ($_.StartType -eq "Automatic")
-                                  }
-                if ($stoppedServices) {
-                           $BetterViewStoppedServices = ($stoppedServices | Format-Table -AutoSize | Out-String)    # Make results of Get-Service beaitufl for email messsage
-                           $body = @"
-                                  The following services are not running:
-                                  $BetterViewStoppedServices
+    )
 
-                                  Please, check $hostname server immediately!
-"@   # Place results of Get-Service in multiline for email message
-                       Send-MailMessage -From $FromEmailAddress -To $ToEmailAddress -Subject "Alert: Stopped Automatic Services on $hostname server" -Body $body -SmtpServer $SMTPServer
-                             }
-                          }
-                catch {
-                 Write-Error "An unexpected error occurred: $($_.Exception.Message)"  # Throw error message in case of unexpected error
-                   }
-                               } #End of function
+    try {
+        $stoppedServices = Get-Service | Where-Object {
+            ($_.Status -eq "Stopped") -and ($_.StartType -eq "Automatic")
+        }
 
-# Variables
-$SMTPServer = "smtp.freesmtpservers.com"  # I used a testing SMTP for testing purposes. You can also test
-$FromEmailAddress = "alerts@test.com"
-$ToEmailAddress = "test@test.com"
-$hostname = hostname  #To make subject of email message more personalized and useful
+        if ($stoppedServices) {
+            $stoppedServicesTable = $stoppedServices | Format-Table -AutoSize | Out-String
+            $body = @"
+The following services are not running:
+
+$stoppedServicesTable
+
+Please check $hostname server immediately!
+"@
+            Send-MailMessage `
+                -From $FromEmailAddress `
+                -To $ToEmailAddress `
+                -Subject "Alert: Stopped Automatic Services on $hostname" `
+                -Body $body `
+                -SmtpServer $SMTPServer
+        }
+    }
+    catch {
+        Write-Error "An unexpected error occurred: $($_.Exception.Message)"
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Configuration — update these values before running the script
+# ---------------------------------------------------------------------------
+$SMTPServer      = "smtp.example.com"
+$FromEmailAddress = "alerts@example.com"
+$ToEmailAddress   = "admin@example.com"
+$hostname         = hostname
 
 Check-Services -SMTPServer $SMTPServer -FromEmailAddress $FromEmailAddress -ToEmailAddress $ToEmailAddress
-
-# Written by David Malko. I tried to purify my code visually, but I am not a pro developer :)
