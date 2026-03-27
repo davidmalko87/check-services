@@ -3,7 +3,7 @@
 > PowerShell script that monitors Windows services and sends an email alert when any automatic-startup service is found stopped.
 
 [![CI](https://github.com/davidmalko87/windows-service-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/davidmalko87/windows-service-monitor/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-1.1.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](CHANGELOG.md)
 [![PowerShell](https://img.shields.io/badge/PowerShell-4.0%2B-blue?logo=powershell)](https://microsoft.com/powershell)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows)](https://www.microsoft.com/windows)
@@ -61,10 +61,10 @@ All configuration is done directly in `Check-Services.ps1`:
 | `$FromEmailAddress` | Yes | Sender email address | `'alerts@corp.com'` |
 | `$ToEmailAddress` | Yes | Recipient email address | `'ops-team@corp.com'` |
 
-The function also accepts these as parameters if you prefer to call it directly:
+Or import the module and call the function directly:
 
 ```powershell
-. .\Check-Services.ps1
+Import-Module .\WindowsServiceMonitor.psd1
 Test-StoppedServices `
     -SMTPServer       'smtp.example.com' `
     -FromEmailAddress 'alerts@example.com' `
@@ -104,15 +104,21 @@ windows-service-monitor/
 │   │   ├── bug_report.yml
 │   │   └── feature_request.yml
 │   ├── workflows/
-│   │   └── ci.yml
+│   │   ├── ci.yml        ← lint + Pester tests on every push/PR
+│   │   ├── publish.yml   ← publish to PSGallery on v* tag
+│   │   ├── release.yml   ← create GitHub Release on v* tag
+│   │   └── stale.yml     ← close stale issues/PRs
 │   ├── dependabot.yml
 │   └── PULL_REQUEST_TEMPLATE.md
+├── tests/
+│   └── WindowsServiceMonitor.Tests.ps1
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── README.md
 ├── WindowsServiceMonitor.psd1   ← canonical version source
-└── Check-Services.ps1
+├── WindowsServiceMonitor.psm1   ← module (exported functions)
+└── Check-Services.ps1           ← thin runner script
 ```
 
 ## Known Limitations

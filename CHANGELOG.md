@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-03-27
+
+### Added
+- `WindowsServiceMonitor.psm1` — function now lives in a proper PowerShell module file
+- `tests/WindowsServiceMonitor.Tests.ps1` — Pester 5 test suite covering no-alert path,
+  alert path (email sent with correct parameters and body), and error-handling path
+- `.github/workflows/publish.yml` — publishes the module to PSGallery on every `v*` tag,
+  with a pre-flight check that the manifest version matches the tag
+- `.github/workflows/release.yml` — auto-creates a GitHub Release with changelog notes
+  extracted from `CHANGELOG.md` on every `v*` tag
+- `.github/workflows/stale.yml` — marks stale issues and PRs after 60 days of inactivity
+- CI now installs Pester 5 and runs the test suite with JaCoCo code-coverage output
+
+### Changed
+- `WindowsServiceMonitor.psd1`: added `RootModule` and `FunctionsToExport`; removed
+  `ScriptsToProcess`; version bumped to 1.2.0
+- `Check-Services.ps1`: now a thin runner that imports the module and calls
+  `Test-StoppedServices`
+- `$env:COMPUTERNAME` falls back to `[System.Net.Dns]::GetHostName()` for cross-platform
+  compatibility when running tests on Linux CI agents
+
 ## [1.1.2] - 2026-03-20
 
 ### Changed
@@ -35,7 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sender, and recipient
 - Hostname included in alert subject and body for quick server identification
 
-[Unreleased]: https://github.com/davidmalko87/windows-service-monitor/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/davidmalko87/windows-service-monitor/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/davidmalko87/windows-service-monitor/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/davidmalko87/windows-service-monitor/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/davidmalko87/windows-service-monitor/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/davidmalko87/windows-service-monitor/compare/v1.0.0...v1.1.0
