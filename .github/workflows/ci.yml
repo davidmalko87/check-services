@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint — ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            shell: powershell
+            label: Windows PowerShell 5.1
+          - os: windows-latest
+            shell: pwsh
+            label: Windows PowerShell 7
+          - os: ubuntu-latest
+            shell: pwsh
+            label: Ubuntu PowerShell 7
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: ${{ matrix.shell }}
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer
+        shell: ${{ matrix.shell }}
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning
+          if ($results) {
+            $results | Format-Table -AutoSize
+            Write-Error "PSScriptAnalyzer found $($results.Count) issue(s). Please fix them before merging."
+            exit 1
+          }
+          Write-Host "PSScriptAnalyzer: no issues found."
+
+      - name: Verify script syntax
+        shell: ${{ matrix.shell }}
+        run: |
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            (Join-Path $env:GITHUB_WORKSPACE 'Check-Services.ps1'),
+            [ref]$null,
+            [ref]$errors
+          )
+          if ($errors) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host "Syntax check passed."

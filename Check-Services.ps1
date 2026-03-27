@@ -19,14 +19,14 @@
     The recipient email address for alert notifications.
 
 .EXAMPLE
-    Check-Services -SMTPServer "smtp.example.com" -FromEmailAddress "alerts@example.com" -ToEmailAddress "admin@example.com"
+    Test-StoppedServices -SMTPServer "smtp.example.com" -FromEmailAddress "alerts@example.com" -ToEmailAddress "admin@example.com"
 
 .NOTES
     Author: David Malko
     Requires: PowerShell 4.0 or later, Windows
 #>
 
-Function Check-Services {
+Function Test-StoppedServices {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
@@ -39,9 +39,11 @@ Function Check-Services {
         [string]$ToEmailAddress
     )
 
+    $computerName = $env:COMPUTERNAME
+
     try {
         $stoppedServices = Get-Service | Where-Object {
-            ($_.Status -eq "Stopped") -and ($_.StartType -eq "Automatic")
+            ($_.Status -eq 'Stopped') -and ($_.StartType -eq 'Automatic')
         }
 
         if ($stoppedServices) {
@@ -51,12 +53,12 @@ The following services are not running:
 
 $stoppedServicesTable
 
-Please check $hostname server immediately!
+Please check $computerName server immediately!
 "@
             Send-MailMessage `
                 -From $FromEmailAddress `
                 -To $ToEmailAddress `
-                -Subject "Alert: Stopped Automatic Services on $hostname" `
+                -Subject "Alert: Stopped Automatic Services on $computerName" `
                 -Body $body `
                 -SmtpServer $SMTPServer
         }
@@ -69,9 +71,8 @@ Please check $hostname server immediately!
 # ---------------------------------------------------------------------------
 # Configuration — update these values before running the script
 # ---------------------------------------------------------------------------
-$SMTPServer      = "smtp.example.com"
-$FromEmailAddress = "alerts@example.com"
-$ToEmailAddress   = "admin@example.com"
-$hostname         = hostname
+$SMTPServer       = 'smtp.example.com'
+$FromEmailAddress = 'alerts@example.com'
+$ToEmailAddress   = 'admin@example.com'
 
-Check-Services -SMTPServer $SMTPServer -FromEmailAddress $FromEmailAddress -ToEmailAddress $ToEmailAddress
+Test-StoppedServices -SMTPServer $SMTPServer -FromEmailAddress $FromEmailAddress -ToEmailAddress $ToEmailAddress
