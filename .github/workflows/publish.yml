@@ -1,0 +1,31 @@
+name: Publish to PSGallery
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Publish module
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify manifest version matches tag
+        shell: pwsh
+        run: |
+          $manifest  = Import-PowerShellDataFile -Path './WindowsServiceMonitor.psd1'
+          $tagVersion = '${{ github.ref_name }}' -replace '^v', ''
+          if ($manifest.ModuleVersion -ne $tagVersion) {
+            Write-Error "Manifest version ($($manifest.ModuleVersion)) does not match tag ($tagVersion). Aborting."
+            exit 1
+          }
+
+      - name: Publish to PowerShell Gallery
+        shell: pwsh
+        run: Publish-Module -Path . -NuGetApiKey $env:PSGALLERY_API_KEY -Verbose
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}

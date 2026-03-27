@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Lint — ${{ matrix.label }}
+  test:
+    name: Test — ${{ matrix.label }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -29,9 +29,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install PSScriptAnalyzer
+      - name: Install dependencies
         shell: ${{ matrix.shell }}
-        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+          Install-Module -Name Pester -Force -Scope CurrentUser -MinimumVersion 5.0 -SkipPublisherCheck
 
       - name: Run PSScriptAnalyzer
         shell: ${{ matrix.shell }}
@@ -39,7 +41,7 @@ jobs:
           $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning
           if ($results) {
             $results | Format-Table -AutoSize
-            Write-Error "PSScriptAnalyzer found $($results.Count) issue(s). Please fix them before merging."
+            Write-Error "PSScriptAnalyzer found $($results.Count) issue(s)."
             exit 1
           }
           Write-Host "PSScriptAnalyzer: no issues found."
@@ -49,7 +51,7 @@ jobs:
         run: |
           $errors = $null
           $null = [System.Management.Automation.Language.Parser]::ParseFile(
-            (Join-Path $env:GITHUB_WORKSPACE 'Check-Services.ps1'),
+            (Join-Path $env:GITHUB_WORKSPACE 'WindowsServiceMonitor.psm1'),
             [ref]$null,
             [ref]$errors
           )
@@ -58,3 +60,16 @@ jobs:
             exit 1
           }
           Write-Host "Syntax check passed."
+
+      - name: Run Pester tests
+        shell: ${{ matrix.shell }}
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = './tests'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          $config.CodeCoverage.Enabled = $true
+          $config.CodeCoverage.Path = @('./WindowsServiceMonitor.psm1')
+          $config.CodeCoverage.OutputFormat = 'JaCoCo'
+          $config.CodeCoverage.OutputPath = './coverage.xml'
+          Invoke-Pester -Configuration $config
